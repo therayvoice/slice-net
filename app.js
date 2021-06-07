@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // order of arguments: downloadOrUpload, fileNameOrIpAddress
+// if the download is sucessful we have to manually delete files
 
 const express = require('express');
 const splitFile = require('split-file');
@@ -89,17 +90,30 @@ if (downloadOrUpload == "upload") {
   fetch(`http://${currentFileOrIP}:${port}`)
     .then(res => res.json())
     .then(json => {
-      
-      for (i in json.shardNames) {
-	const part = +i + 1;
-        getFile(`http://${currentFileOrIP}:${port}/file${part}`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${part}`);
 
-        fs.writeFile(`${currentUserDirectory}/${downloadFolder}/${json.fileName}-logs.json`, `file --${part}-- downloaded sucessfully!\n`, function (err) {
-          if (err) throw err;
-          console.log('Saved!');
-        }); 
+	    let continuance = true;
+//      if (/* if no files are sent */) {
+        for (i in json.shardNames) {
+	  const part = +i + 1;
 
-      }
+	  if (!fs.existsSync(`${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${part}`)) {
+	    if (continuance == true) {
+		    // to delete the last file downloaded, which musthave been in complete
+	      continuance = false;
+              getFile(`http://${currentFileOrIP}:${port}/file${part -1 }`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${part -1}`);
+	    }
+          
+		  getFile(`http://${currentFileOrIP}:${port}/file${part}`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${part}`);
+
+	  }
+
+          fs.writeFile(`${currentUserDirectory}/${downloadFolder}/${json.fileName}-logs.json`, `file --${part}-- downloaded sucessfully!\n`, function (err) {
+            if (err) throw err;
+            console.log('Saved!');
+          }); 
+          
+        }
+//      }
       
   // if all parts are downloaded sucessfully then merge them
 
@@ -147,36 +161,3 @@ const getFile = (async (url, path) => {
   });
 });
 
-
-
-/*
-//split by number of sons
-const splitFile = require('split-file');
-
-splitFile.splitFile(__dirname + '/testfile.bin', 3)
-  .then((names) => {
-    console.log(names);
-  })
-  .catch((err) => {
-    console.log('Error: ', err);
-  });
-
-*/
-
-/*
-// merge
-mergeFiles(names, outputFile) => Promise<>
-*/
-
-/*
-// split by size
-const splitFile = require('split-file');
-
-splitFile.splitFileBySize(__dirname + '/testfile.bin', 457000)
-  .then((names) => {
-    console.log(names);
-  })
-  .catch((err) => {
-    console.log('Error: ', err);
-  });
-*/
