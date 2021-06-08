@@ -1,5 +1,5 @@
 {
-  "name": "slice-voice",
+  "name": "slice-net",
   "version": "1.0.0",
   "description": "A crossplatform server to transfer large files over slow and unstable networks.",
   "main": "app.js",
@@ -28,6 +28,6 @@
     "split-file": "^2.2.2"
   },
   "bin": {
-    "slice": "./app.js"
+    "slice-net": "./app.js"
   }
 }
