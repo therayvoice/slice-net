@@ -79,8 +79,9 @@ if (downloadOrUpload == "upload") {
 
 } else if (downloadOrUpload == "download") {
 
+  let downloadedFileShards;
   //wire code to get a valid IP address
-  // example: slice download 192.168.1.112
+  // example: slice download 192.168.1.112 as argumentVector
 
   // creating downloads folder named sliceFiles if not created already
   if (!fs.existsSync(`${currentUserDirectory}/${downloadFolder}`)) {
@@ -90,9 +91,29 @@ if (downloadOrUpload == "upload") {
   fetch(`http://${currentFileOrIP}:${port}`)
     .then(res => res.json())
     .then(json => {
+      
+      const logFileURL = `${ currentUserDirectory }/${ downloadFolder }/${ json.fileName }-logs.json`;
+      
+      // if log file exists then check the last shard downloaded and assign it to downloadedFileShards, else make an empty log file.
+      if (fs.existsSync(logFileURL)) {
+        const data = fs.readFileSync(logFileURL, {encoding:'utf8', flag:'r'});
+	downloadedFileShards = data.split("--")[1];
+        console.log(`Last downloaded shard is ${downloadedFileShards}`);
+      } else {
+	fs.writeFileSync(logFileURL, `file --none-- downloaded sucessfylly!\n`);
+	downloadedFileShards = 0;
+        console.log("No shards were downloaded previously, an empty log file created!");
+      }
+      
+      for (let i = downloadedFileShards; i <= json.shardCount; i++) {
+        console.log(`Downloading file #${i}`);
+        getFile(`http://${currentFileOrIP}:${port}/file${i}`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${i}`);
+        fs.writeFileSync(logFileURL, `file --${i}-- downloaded sucessfully!\n`); 
+      }
+      
 
-	    let continuance = true;
-//      if (/* if no files are sent */) {
+/*
+	let continuance = true;
         for (i in json.shardNames) {
 	  const part = +i + 1;
 
@@ -113,11 +134,9 @@ if (downloadOrUpload == "upload") {
           }); 
           
         }
-//      }
-      
+  */   
   // if all parts are downloaded sucessfully then merge them
-
-  fs.readFile(`${currentUserDirectory}/${downloadFolder}/${json.fileName}-logs.json`, "utf8", function(err, data) {
+/*  fs.readFile(`${currentUserDirectory}/${downloadFolder}/${json.fileName}-logs.json`, "utf8", function(err, data) {
 
     let shardNamesInDownloadDirectory = [];
     const mergedFileName = `${currentUserDirectory}/${downloadFolder}/${json.fileName}`;
@@ -130,26 +149,34 @@ if (downloadOrUpload == "upload") {
     console.log(mergedFileName);
 
     if (data.split("--")[1] == json.shardCount) {
-      splitFile.mergeFiles(shardNamesInDownloadDirectory, mergedFileName)
-        .then(()=>{
-	  console.log("merge sucessful!");
-	})
-        .catch((err) => {
-          console.log('Error: ', err);
-        });
-
+      mergeShards( shardNamesInDownloadDirectory, mergedFileName);
     }
 
-  });    
+  });*/
 
-      console.log(json);
-    });
+  const logFileContent = fs.readFileSync(logFileURL, "utf8");
+
+  if (logFileContent.split("--"[1] == json.shardCount)) {
+    mergeShards( json.shardNames, json.fileName);
+  }
+
+  console.log(json);
+  });
 
 } else {
   console.log(`${downloadOrUpload} is not a valid command`);
   process.exit();
 }
 
+function mergeShards(shards, outputName) {
+ splitFile.mergeFiles(shards, outputName)
+   .then(()=>{
+     console.log("merge sucessful!");
+   })
+   .catch((err) => {
+     console.log('Error Merging: ', err);
+   });
+}
 
 const getFile = (async (url, path) => {
   const res = await fetch(url);
