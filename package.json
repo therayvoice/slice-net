@@ -1,5 +1,5 @@
 {
-  "name": "slice",
+  "name": "slice-voice",
   "version": "1.0.0",
   "description": "A crossplatform server to transfer large files over slow and unstable networks.",
   "main": "app.js",
