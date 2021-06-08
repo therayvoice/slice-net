@@ -105,63 +105,21 @@ if (downloadOrUpload == "upload") {
         console.log("No shards were downloaded previously, an empty log file created!");
       }
       
+      // Download all shards, starting form the last shard downloaded just in case it wasent downloaded properly
       for (let i = downloadedFileShards; i <= json.shardCount; i++) {
         console.log(`Downloading file #${i}`);
         getFile(`http://${currentFileOrIP}:${port}/file${i}`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${i}`);
         fs.writeFileSync(logFileURL, `file --${i}-- downloaded sucessfully!\n`); 
       }
-      
+  
+    // check logs to see if all shards are downloaded, if yes then merge them into a single file
+    const logFileContent = fs.readFileSync(logFileURL, "utf8");
 
-/*
-	let continuance = true;
-        for (i in json.shardNames) {
-	  const part = +i + 1;
-
-	  if (!fs.existsSync(`${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${part}`)) {
-	    if (continuance == true) {
-		    // to delete the last file downloaded, which musthave been in complete
-	      continuance = false;
-              getFile(`http://${currentFileOrIP}:${port}/file${part -1 }`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${part -1}`);
-	    }
-          
-		  getFile(`http://${currentFileOrIP}:${port}/file${part}`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${part}`);
-
-	  }
-
-          fs.writeFile(`${currentUserDirectory}/${downloadFolder}/${json.fileName}-logs.json`, `file --${part}-- downloaded sucessfully!\n`, function (err) {
-            if (err) throw err;
-            console.log('Saved!');
-          }); 
-          
-        }
-  */   
-  // if all parts are downloaded sucessfully then merge them
-/*  fs.readFile(`${currentUserDirectory}/${downloadFolder}/${json.fileName}-logs.json`, "utf8", function(err, data) {
-
-    let shardNamesInDownloadDirectory = [];
-    const mergedFileName = `${currentUserDirectory}/${downloadFolder}/${json.fileName}`;
-
-    for (item of json.shardNames) {
-      let itemBreadCrumbs = item.split("/");
-      shardNamesInDownloadDirectory.push(itemBreadCrumbs[itemBreadCrumbs.length-1]); 
-    }
-    console.log(shardNamesInDownloadDirectory);
-    console.log(mergedFileName);
-
-    if (data.split("--")[1] == json.shardCount) {
-      mergeShards( shardNamesInDownloadDirectory, mergedFileName);
+    if (logFileContent.split("--"[1] == json.shardCount)) {
+      mergeShards( json.shardNames, json.fileName);
     }
 
-  });*/
-
-  const logFileContent = fs.readFileSync(logFileURL, "utf8");
-
-  if (logFileContent.split("--"[1] == json.shardCount)) {
-    mergeShards( json.shardNames, json.fileName);
-  }
-
-  console.log(json);
-  });
+    });
 
 } else {
   console.log(`${downloadOrUpload} is not a valid command`);
