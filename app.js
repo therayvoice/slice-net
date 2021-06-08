@@ -136,13 +136,18 @@ function mergeShards(shards, outputName) {
    });
 }
 
-const getFile = (async (url, path) => {
-  const res = await fetch(url);
-  const fileStream = fs.createWriteStream(path);
-  await new Promise((resolve, reject) => {
-    res.body.pipe(fileStream);
-    res.body.on("error", reject);
-    fileStream.on("finish", resolve);
-  });
-});
+
+async function downloadSync(url, filePath){
+    return await fetch(url)
+    .then(res => {
+      const fileStream = fs.createWriteStream(filePath);
+      res.body.pipe(fileStream);
+      res.body.on("error", ()=>{console.log(`file at ${url} download faild!`)});
+      fileStream.on("finish", ()=>{ console.log(`file at ${url} downloaded sucessfully!`) });
+    })
+}
+
+function getFile (fileURL, downloadAtPath) {
+  downloadSync(fileURL, downloadAtPath);
+}
 
