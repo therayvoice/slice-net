@@ -25,42 +25,63 @@ const currentUserDirectory = process.cwd();
 const currentFileOrIP = process.argv[3]; // "a file name", "not absolute"
 // here: write code for just serving or getting part number
 const downloadFolder = "sliceFiles";
-const thirdArgumentVector = process.argv[4];
+const generalLogFile = path.join("slice-net_logs.txt");
+const thirdArgumentVector = process.argv[4]; // supposed to in 1/10 an MB, 10 means 1mb
+let shardSize = 1000000;
 const latencyTimeout = 8000;
 const diskToSoftwareLatency = 1000;
 let startMerging = false;
 let mergingFailed = false;
 
-if (thirdArgumentVector == "noMerge" || thirdArgumentVector == "noShards" || thirdArgumentVector === undefined) {
-  if (thirdArgumentVector === undefined) {
+function hardLog(log) {
+//  fs.appendFileSync(generalLogFile, `${log}\n`);
+  shadowLog(log);
+  console.log(log);
+}
+
+function shadowLog(logData) {
+  const freshDate = new Date();
+  fs.appendFileSync(generalLogFile, `${logData}\n                                  --${freshDate.toISOString()}\n`);
+}
+
+hardLog(chalk.bgBlack.white.bold(`New session started`));
+hardLog(`User __dirname was: ${chalk.bold.bgBlue.yellow(__dirname)}`);
+hardLog(`User currentUserDirectory was: ${chalk.bold.bgYellow.blue(currentUserDirectory)}`)
+
+
+if (thirdArgumentVector == "noMerge" || thirdArgumentVector == "noShards" || thirdArgumentVector === undefined ) {
+  if (thirdArgumentVector === undefined ) {
+	  /*
+    const generalLog1 = "Slice-net will download the provided file in sharded form and unshard them, then leave the shards for later use.";
+    fs.writeSync(generalLogFile,  generalLog1);
     console.log("Slice-net will download the provided file in sharded form and unshard them, then leave the shards for later use.");
+    */
+    hardLog(chalk.bgBlack.white("Slice-net will download the provided file in sharded form and unshard them, then leave the shards for later use."));
   } else {
-    console.log(`${thirdArgumentVector} will take effect after download`);
+    //old: console.log(`${thirdArgumentVector} will take effect after download`);
+    hardLog(chalk.bgBlack.red(`${thirdArgumentVector} will take effect after download`)); //new
   }
+} else if (+thirdArgumentVector < 50) {
+  shardSize = +thirdArgumentVector * 100000;
 } else {
-  console.log(`${thirdArgumentVector} is not a valid argument`);
+  //old: console.log(`${thirdArgumentVector} is not a valid argument`);
+  hardLog(chalk.bgBlack.red.bold(`${thirdArgumentVector} is not a valid argument`)); //new
   process.exit();
 }
 
-// console.log(process.argv);
-/*
-if (process.argv[2] != "download" || process.argv[2] != "upload") {
-  console.log(`${process.argv[2]} is not a valid command`);
-}
-*/
-// console.log(typeof(process.argv[3]));
 
-console.log(chalk.red(__dirname));
-console.log(chalk.yellow(currentUserDirectory))
+//console.log(chalk.red(__dirname));
+//console.log(chalk.yellow(currentUserDirectory))
 
 if (downloadOrUpload == "upload") {
-
+  hardLog(chalk.bgRed.black.bold(`Attempted to start server!`));
   // example: slice upload fileName.mp4
 
-  splitFile.splitFileBySize(`${currentUserDirectory}/${currentFileOrIP }`, 1000000)
+  splitFile.splitFileBySize(`${currentUserDirectory}/${currentFileOrIP }`, shardSize)
     .then((names) => {
 
-      console.log(names);
+      hardLog(chalk.bgYellow.green.bold(`The "names" of shards are:- \n`));
+      hardLog(names);
 
       app.get('/', (req, res) => {
         let token = {
@@ -68,7 +89,8 @@ if (downloadOrUpload == "upload") {
 	  shardCount:names.length,
 	  shardNames:names
 	}
-	console.log(token);
+	hardLog(chalk.bgYellow.cyan.bold(`The "token" sent was the following:-`));
+	hardLog(token);
         res.send(token);
         //res.send(`{"fileName":"${currentFileOrIP}", "shardCount":${names.length}}`);
       });
@@ -84,20 +106,20 @@ if (downloadOrUpload == "upload") {
       app.listen(port, () => {
 
         dns.lookup(os.hostname(), (err, add, fam) => {
-          console.log(`Example app listening at http://${add}:${port}`)
+          hardLog(chalk.bgBlack.white.bold(`Server listening at `) + chalk.bgBlack.cyan.bold(`http://${add}:${port}`));
         });
 
       })
 
     })
     .catch((err) => {
-      console.log('Error: ', err);
+      hardLog(`Error caught by splitFileBySize \n Error: ${err}`);
     });
 
 } else if (downloadOrUpload == "download") {
 
   let downloadedFileShards;
-  //wire code to get a valid IP address
+  //wire code to get a valid IP address or web-url
   // example: slice download 192.168.1.112 as argumentVector
 
   // creating downloads folder named sliceFiles if not created already
@@ -109,23 +131,26 @@ if (downloadOrUpload == "upload") {
     .then(res => res.json())
     .then(json => {
       
-      const logFileURL = `${ currentUserDirectory }/${ downloadFolder }/${ json.fileName }-logs.json`;
+      const logFileURL = path.join(currentUserDirectory, downloadFolder, `${ json.fileName }-logs.json`);
       
       // if log file exists then check the last shard downloaded and assign it to downloadedFileShards, else make an empty log file.
       if (fs.existsSync(logFileURL)) {
         const data = fs.readFileSync(logFileURL, {encoding:'utf8', flag:'r'});
 	downloadedFileShards = data.split("--")[1];
-        console.log(`Last downloaded shard is ${downloadedFileShards}`);
+        hardLog(`Last downloaded shard is ${downloadedFileShards}`);
       } else {
 	fs.writeFileSync(logFileURL, `file --none-- downloaded sucessfylly!\n`);
 	downloadedFileShards = 1;
-        console.log("No shards were downloaded previously, an empty log file created!");
+        hardLog("No shards were downloaded previously, an empty log file created!");
       }
       
-      // Download all shards, starting form the last shard downloaded just in case it wasent downloaded properly
+      // Download all shards, starting form the last shard downloaded just in case it was not downloaded properly and saved as an anachronism
       for (let i = downloadedFileShards; i <= json.shardCount; i++) {
-        console.log(`Downloading file #${i}`);
-        getFile(`http://${currentFileOrIP}:${port}/file${i}`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${i}`);
+	const fileNameToDownloadAs = getShardURL(json.fileName, getShardPrefix(json.shardCount, i), i);
+        //console.log(chalk.yellow(`Downloading file #${i} as ${fileNameToDownloadAs}`));
+	      // get over here
+        //getFile(`http://${currentFileOrIP}:${port}/file${i}`, `${currentUserDirectory}/${downloadFolder}/${json.fileName}.sf-part${i}`);
+        getFile(`http://${currentFileOrIP}:${port}/file${i}`, fileNameToDownloadAs);
         fs.writeFileSync(logFileURL, `file --${i}-- downloaded sucessfully!\n`); 
       }
   
@@ -134,12 +159,12 @@ if (downloadOrUpload == "upload") {
 
     if (logFileContent.split("--"[1] == json.shardCount)) {
       if ( thirdArgumentVector == "noMerge" ) {
-        console.log("Shards are left Unmerged");
+        hardLog("Shards are left Unmerged");
       } else {
 
 	// will use a Promise later, first need to see the interval first hand; also add noShards code here and remove it from where it is, it dosent need a latency
 	let mergingInterval = setInterval(() =>{
-	  console.log("Waiting for all shards to download...");
+	  hardLog("Waiting for all shards to download...");
 	  if (startMerging == true) {
             // maybe this goes second
             mergeShards(json.fileName, json.shardCount, logFileURL);
@@ -154,7 +179,7 @@ if (downloadOrUpload == "upload") {
     });
 
 } else {
-  console.log(`${downloadOrUpload} is not a valid command`);
+  hardLog(`${downloadOrUpload} is not a valid command`);
   process.exit();
 }
 
@@ -163,29 +188,90 @@ if (downloadOrUpload == "upload") {
 function relativeShards(mainFileName, totalShardCount) {
   let shards = [];
   for (let i = 1; i<= totalShardCount; i++) {
-    let shardURL = path.join(currentUserDirectory, downloadFolder, `${mainFileName}.sf-part${i}`);
+    let shardURL = getShardURL(mainFileName, getShardPrefix(totalShardCount, i), i);
+	  /*
+    if (totalShardCount >= 100) {
+      if (i >= 100) {
+//        shardURL = path.join(currentUserDirectory, downloadFolder, `${mainFileName}.sf-part${i}`);
+	shardURL = getShardURL(mainFileName, "", i);
+      } else if (i >= 10) {
+	shardURL = getShardURL(mainFileName, "0", i);
+      } else if (i >= 1) {
+	shardURL = getShardURL(mainFileName, "00", i);
+      }
+    } else if (totalShardCount >=10) {
+      if (i >= 10) {
+	shardURL = getShardURL(mainFileName, "", i);
+      } else if (i >= 1) {
+	shardURL = getShardURL(mainFileName, "0", i);
+      }
+    } else if (totalShardCount >= 1) {
+      shardURL = getShardURL(mainFileName, "", i);
+    } else {
+      console.log("shard length not valid, or too many shards");
+      process.exit();
+    }
+	  */
     shards.push(shardURL);
   }
   return shards;
 }
 
+function getShardPrefix(totalShardCount, partNumber) {
+  let shardPrefix;
+    if (totalShardCount >= 100) {
+      if (partNumber >= 100) {
+	shardPrefix = "";
+      } else if (partNumber >= 10) {
+	shardPrefix = "0";
+      } else if (partNumber >= 1) {
+	shardPrefix = "00";
+      }
+    } else if (totalShardCount >=10) {
+      if (partNumber >= 10) {
+	shardPrefix = "";
+      } else if (partNumber >= 1) {
+	shardPrefix = "0";
+      }
+    } else if (totalShardCount >= 1) {
+        shardPrefix = "";
+    } else {
+      hardLog("shard length not valid, or too many shards");
+      process.exit();
+    }
+  return shardPrefix;
+}
+
+function getShardURL(currentFileName, prefix, partNumber) {
+  const absoluteShardURL = path.join(currentUserDirectory, downloadFolder, `${currentFileName}.sf-part${prefix}${partNumber}`);
+  //console.log("URL generated for shard is: ", chalk.yellow(absoluteShardURL));
+  return absoluteShardURL;
+}
+
 function mergeShards(fileName, shardCount, logFileForDeleting) {
-  splitFile.mergeFiles(relativeShards(fileName, shardCount), fileName)
+	// altered this
+  const shardsToMerge = relativeShards(fileName, shardCount);
+  hardLog(chalk.blue.bgBlack.bold(`Merging the following files:`));
+  for (shardCount in shardsToMerge) {
+    hardLog(shardsToMerge[shardCount]);
+  }
+
+  splitFile.mergeFiles(shardsToMerge, fileName)
     .then(()=>{
-      console.log("merge sucessful!");
+      hardLog("merge sucessful!");
       if (thirdArgumentVector == "noShards") {
 	 deleteShards(fileName, shardCount, logFileForDeleting);
         }
     })
     .catch((err) => {
-      console.log('Error Merging: ', err);
+      hardLog('Error Merging: '+ err);
     });
 }
 
 function deleteShards(fileName, shardCount, logFile) {
   relativeShards(fileName, shardCount).forEach(shard => {
     fs.unlinkSync(shard);
-    console.log("Deleted "+shard);
+    hardLog("Deleted "+shard);
   })
   
   fs.unlinkSync(logFile);
@@ -193,16 +279,17 @@ function deleteShards(fileName, shardCount, logFile) {
 
 // add a work-in solution for using async fetch instead of sync fetch, right now i'm trying timeIntervals which trigger upon a variable signal like startMerging, etc. Promises don't give a close enough look at what is happening, so they are left for later.
 async function downloadSync(url, filePath){
+  hardLog(chalk.bgYellow.blue.bold(`Download Starting: `) + `Downloading from ${path.basename(url)} at ` + chalk.blue(`${path.basename(filePath)}`));
     return await fetch(url)
     .then(res => {
       const fileStream = fs.createWriteStream(filePath);
       res.body.pipe(fileStream);
       res.body.on("error", ()=>{
-	console.log(`file at ${url} download faild!`);
+        hardLog(chalk.bgRed.yellow.bold(`Download Faild: `) + `file at ${path.basename(url)} download faild! An anachronism of the file is saved at ` + chalk.red(`${path.basename(filePath)}`));
 	mergingFailed = true; // let's see if this works
       });
       fileStream.on("finish", ()=>{
-	console.log(`file at ${url} downloaded sucessfully!`);
+	hardLog(chalk.bgCyan.yellow.bold(`Download Sucessful: `) + `file at ${path.basename(url)} downloaded sucessfully! Saved as ` + chalk.cyan(`${path.basename(filePath)}`));
 	startMerging = true; // let's see if this works
       });
     })
