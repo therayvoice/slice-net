@@ -195,29 +195,6 @@ function relativeShards(mainFileName, totalShardCount) {
   let shards = [];
   for (let i = 1; i<= totalShardCount; i++) {
     let shardURL = getShardURL(mainFileName, getShardPrefix(totalShardCount, i), i);
-	  /*
-    if (totalShardCount >= 100) {
-      if (i >= 100) {
-//        shardURL = path.join(currentUserDirectory, downloadFolder, `${mainFileName}.sf-part${i}`);
-	shardURL = getShardURL(mainFileName, "", i);
-      } else if (i >= 10) {
-	shardURL = getShardURL(mainFileName, "0", i);
-      } else if (i >= 1) {
-	shardURL = getShardURL(mainFileName, "00", i);
-      }
-    } else if (totalShardCount >=10) {
-      if (i >= 10) {
-	shardURL = getShardURL(mainFileName, "", i);
-      } else if (i >= 1) {
-	shardURL = getShardURL(mainFileName, "0", i);
-      }
-    } else if (totalShardCount >= 1) {
-      shardURL = getShardURL(mainFileName, "", i);
-    } else {
-      console.log("shard length not valid, or too many shards");
-      process.exit();
-    }
-	  */
     shards.push(shardURL);
   }
   return shards;
@@ -250,7 +227,6 @@ function getShardPrefix(totalShardCount, partNumber) {
 
 function getShardURL(currentFileName, prefix, partNumber) {
   const absoluteShardURL = path.join(currentUserDirectory, downloadFolder, `${currentFileName}.sf-part${prefix}${partNumber}`);
-  //console.log("URL generated for shard is: ", chalk.yellow(absoluteShardURL));
   return absoluteShardURL;
 }
 
