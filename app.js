@@ -18,6 +18,7 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 })
 */
 
+const version = "1.3.0";
 const app = express();
 const port = 3210;
 const downloadOrUpload = process.argv[2]; // "download" or "upload"
@@ -44,7 +45,7 @@ function shadowLog(logData) {
   fs.appendFileSync(generalLogFile, `${logData}\n                                  --${freshDate.toISOString()}\n`);
 }
 
-hardLog(chalk.bgBlack.white.bold(`New session started`));
+hardLog(chalk.bgBlack.white.bold(`New session started, version ${version}`));
 hardLog(`User __dirname was: ${chalk.bold.bgBlue.yellow(__dirname)}`);
 hardLog(`User currentUserDirectory was: ${chalk.bold.bgYellow.blue(currentUserDirectory)}`)
 
