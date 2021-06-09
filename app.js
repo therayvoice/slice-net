@@ -18,7 +18,9 @@ require('dns').lookup(require('os').hostname(), function (err, add, fam) {
 })
 */
 
-const version = "1.3.0";
+const version = "1.4.0";
+const authors = "Ray Voice and Anna Voice"
+
 const app = express();
 const port = 3210;
 const downloadOrUpload = process.argv[2]; // "download" or "upload"
@@ -46,6 +48,7 @@ function shadowLog(logData) {
 }
 
 hardLog(chalk.bgBlack.white.bold(`New session started, version ${version}`));
+hardLog(chalk.bgBlack.yellow.bold(`Created by ${authors}`));
 hardLog(`User __dirname was: ${chalk.bold.bgBlue.yellow(__dirname)}`);
 hardLog(`User currentUserDirectory was: ${chalk.bold.bgYellow.blue(currentUserDirectory)}`)
 
