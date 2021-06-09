@@ -159,7 +159,9 @@ if (downloadOrUpload == "upload") {
         getFile(`http://${currentFileOrIP}:${port}/file${i}`, fileNameToDownloadAs);
         fs.writeFileSync(logFileURL, `file --${i}-- downloaded sucessfully!\n`); 
       }
-  
+
+    downloadMissingShards(path.basename(json.fileName), json.shardCount, json.fileName);
+
     // check logs to see if all shards are downloaded, if yes then merge them into a single file
     const logFileContent = fs.readFileSync(logFileURL, "utf8");
 
@@ -281,6 +283,48 @@ function getFile (fileURL, downloadAtPath) {
   downloadSync(fileURL, downloadAtPath);
 }
 
+function downloadMissingShards(filename, totalShards, fullFilename) {
+  hardLog(chalk.bold.bgYellow.black(`filename: ${filename}`));
+  // start work here to check for missing files/parts/shards, then downloading is any missing 
+
+  let shardsPresent = [];
+  const downloadedShards = fs.readdirSync(downloadFolder);
+  downloadedShards.forEach((itemName, itemIndexInDirectory, listOfAllItemsInDirectory)=>{
+    if (itemName.includes(`${filename}.sf-part`)) {
+      shardsPresent.push(itemName);
+    }
+  });
+
+  let shardsPresentInNumbers = shardsPresent.map(x=>+x.split("part").pop());
+  let shardsAbsentInNumbers = [];
+
+  for (let i = 1; i <= totalShards; i++) {
+    if (!shardsPresentInNumbers.includes(i)) {
+      shardsAbsentInNumbers.push(i);
+    }
+  }
+  
+  shardsAbsentInNumbers.forEach(shardNumber=>{
+    const fileNameToDownloadAs = getShardURL(fullFilename, getShardPrefix(totalShards, shardNumber), shardNumber);
+    hardLog(shardNumber);
+    getFile(`http://${currentFileOrIP}:${port}/file${shardNumber}`, fileNameToDownloadAs);
+  })
+
+  // end work here
+  //getFile(`http://${currentFileOrIP}:${port}/file${i}`, fileNameToDownloadAs);
+}
+
+
+function arrayHas(myArray, myElement) {
+  myArray.forEach(item => {
+    if (item == myElement) {
+      return true;
+    }
+  });
+  return false;
+}
+
 /*To do*/
 // here: In upload, if all the files are sharded don't re-shard them
 // Refactor the hell out of this code, it looks like something out of a horror movie
+// Add a download Progressbar
