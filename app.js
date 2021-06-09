@@ -28,7 +28,7 @@ const downloadFolder = "sliceFiles";
 const generalLogFile = path.join("slice-net_logs.txt");
 const thirdArgumentVector = process.argv[4]; // supposed to in 1/10 an MB, 10 means 1mb
 let shardSize = 1000000;
-const latencyTimeout = 8000;
+const latencyTimeout = 8000; // unused, remove this
 const diskToSoftwareLatency = 1000;
 let startMerging = false;
 let mergingFailed = false;
@@ -80,8 +80,8 @@ if (downloadOrUpload == "upload") {
   splitFile.splitFileBySize(`${currentUserDirectory}/${currentFileOrIP }`, shardSize)
     .then((names) => {
 
-      hardLog(chalk.bgYellow.green.bold(`The "names" of shards are:- \n`));
-      hardLog(names);
+      hardLog(chalk.bgYellow.green.bold(`The shards are split into the folloing files aka "names":- \n`));
+      hardLog(JSON.stringify(names));
 
       app.get('/', (req, res) => {
         let token = {
@@ -90,16 +90,22 @@ if (downloadOrUpload == "upload") {
 	  shardNames:names
 	}
 	hardLog(chalk.bgYellow.cyan.bold(`The "token" sent was the following:-`));
-	hardLog(token);
+	hardLog(JSON.stringify(token));
         res.send(token);
         //res.send(`{"fileName":"${currentFileOrIP}", "shardCount":${names.length}}`);
       });
 
 // serving all sharded parts of the original file
       for (i in names) {
+	hardLog(chalk.bgCyan.white.bold(i)); //remove this
 	const part = +i + 1;
+	hardLog(chalk.bgCyan.black.inverse(part)); //remove this
         app.get(`/file${part}`, (req, res) => {
-          res.sendFile(`${currentUserDirectory}/${currentFileOrIP}.sf-part${part}`);
+	  //const partURL = getShardURL(currentFileOrIP, getShardPrefix(names.length, part), part);
+	  const partURL = `${currentUserDirectory}/${currentFileOrIP}.sf-part${getShardPrefix(names.length, part)}${part}`;
+          //res.sendFile(`${currentUserDirectory}/${currentFileOrIP}.sf-part${part}`); // get over here // this works perfectly with less than 10 parts
+          hardLog(chalk.bgBlue("URL sent is: ") + partURL);
+          res.sendFile(partURL); // get over here
         });
       }
 
