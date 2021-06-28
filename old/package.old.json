@@ -1,10 +1,10 @@
 {
   "name": "slice-net",
-  "version": "2.0.0",
-  "description": "A crossplatform tool to transfer large files over slow and unstable networks by sharding them.",
-  "main": "app.min.js",
+  "version": "1.4.0",
+  "description": "A crossplatform server to transfer large files over slow and unstable networks by sharding them.",
+  "main": "app.js",
   "scripts": {
-    "test": "node tests/mainTest.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ."
   },
   "repository": {
@@ -13,12 +13,7 @@
   },
   "keywords": [
     "server",
-    "large-file",
-    "p2p",
-    "ray-net",
-    "rayvoice",
-    "sharding",
-    "file-transfer"
+    "large-file"
   ],
   "author": "Ray Voice, Anna Voice",
   "license": "MIT",
@@ -28,10 +23,11 @@
   "homepage": "https://github.com/Ray6464/Slice#readme",
   "dependencies": {
     "chalk": "^4.1.1",
+    "express": "^4.17.1",
     "node-fetch": "^2.6.1",
     "split-file": "^2.2.2"
   },
   "bin": {
-    "slice-net": "./app.min.js"
+    "slice-net": "./app.js"
   }
 }
