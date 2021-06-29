@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const flags = require('ray-flags'); //delete node_modules. remove this dependency from package.json, reinstall it
+const flags = require('ray-flags');
 const path = require('path');
 const splitFile = require('split-file');
 const serve = require('ray-serve');
@@ -48,13 +48,13 @@ if (uploader) {
     .then(names => {
       const shardInfo = [];
       names.forEach(name => {
-	const fileHash = hash.getHashOfFile(name).value; // hashes not working
+	const fileHash = hash.getHashOfFile(name).value;
         const newFileURI = path.join(uploadsDir, name);
         fs.mv(name, newFileURI);
         shardInfo.push({shardName: name, shardHash: fileHash});
-	serve.serveFile(`/${name}`, newFileURI);
+	serve.static(uploadsDir);
       });
-      startServer(names);
+      startServer(shardInfo);
     });
 
 } else if (downloader) {

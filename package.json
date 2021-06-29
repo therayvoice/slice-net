@@ -1,6 +1,6 @@
 {
   "name": "slice-net",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A crossplatform tool to transfer large files over slow and unstable networks by sharding them.",
   "main": "slice-net.min.js",
   "scripts": {
@@ -28,11 +28,12 @@
   },
   "homepage": "https://github.com/Ray6464/Slice#readme",
   "dependencies": {
+    "flags": "^0.1.3",
     "node-fetch": "^2.6.1",
     "ray-flags": "^0.0.7",
     "ray-fs": "^1.5.0",
     "ray-hash": "^0.1.1",
-    "ray-serve": "^2.2.1",
+    "ray-serve": "^2.2.3",
     "split-file": "^2.2.2"
   },
   "bin": {

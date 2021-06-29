@@ -1,5 +1,8 @@
+# Tests
+tests/
+
 # Old Files
-old
+old/
 
 # Uglified
 slice-net.min.js
