@@ -18,7 +18,7 @@ const ipAddr = flags.ip;
 const shardSize = flags.s || 1000000;
 const noMerge = flags.M || false;
 const noShards = flags.S || false;
-const filesDir = flags.d || ""; 
+const filesDir = flags.D || ""; 
 
 // Constants
 const sliceNetDir = path.join(filesDir, "slice-net-files");
@@ -29,9 +29,10 @@ const uploadsDir = path.join(sliceNetDir, "sent-files");
 function initDir(dir) { // goes in ray-fs
   if (!fs.exists(dir).value) fs.mkdir(dir);
 }
-function startServer(shardsInfoArr) {
+function startServer(shardsInfoArr, sentFileName) {
   serve
     .serveJSON("/", {serverName: "slice-net",
+	             fileName: sentFileName,
 	             shards: shardsInfoArr})
     .listen();
 }
@@ -54,13 +55,74 @@ if (uploader) {
         shardInfo.push({shardName: name, shardHash: fileHash});
 	serve.static(uploadsDir);
       });
-      startServer(shardInfo);
+      startServer(shardInfo, file);
     });
 
 } else if (downloader) {
+  console.log("Starting Client for recieveing:");
 
+  initDir(sliceNetDir);
+  initDir(downloadsDir);
+  
+  const baseURL = `http://${ipAddr}:${serve.port}`;
+
+  fetch(baseURL) // fetching the data about shards
+    .then(res => res.json())
+    .then(json => {
+      json.shards.forEach(shardData => {
+	fetch(`${baseURL}/${shardData.shardName}`) // fetching the shards
+          .then(res => {
+	    fs.stream(res.body, shardData.shardName, () => {},
+	    () => {
+	      const shards = json.shards.map(shard => shard.shardName);
+              const shardHashes = json.shards.map(shard => shard.shardHash);
+              splitFile.mergeFiles(shards, json.fileName)
+                .then(() => {
+	          console.log("Files Merged!");
+	        })
+	      .catch((err)=>{
+	        console.log("Unsucessful Merge Error:", err);
+	      });
+	    });
+	  });
+        console.log(shardData.shardName);
+      });
+      /*
+      const shards = json.shards.map(shard => shard.shardName);
+      const shardHashes = json.shards.map(shard => shard.shardHash);
+      splitFile.mergeFiles(shards, json.fileName)
+        .then(() => {
+	  console.log("Files Merged!");
+	})
+	.catch((err)=>{
+	  console.log("Unsucessful Merge Error:", err);
+	});
+       */
+    });
+  
 } else {
   console.log("No Upload or Download command Given!");
   process.exit();
 }
 
+/*
+// DownloadSync Function
+async function downloadSync(url, filePath){
+  hardLog(chalk.bgYellow.blue.bold(`Download Starting: `) + `Downloading from ${path.basename(url)} at ` + chalk.blue(`${path.basename(filePath)}`));
+    return await fetch(url)
+    .then(res => {
+      const fileStream = fs.createWriteStream(filePath);
+      res.body.pipe(fileStream);
+      res.body.on("error", ()=>{
+        hardLog(chalk.bgRed.yellow.bold(`Download Faild: `) + `file at ${path.basename(url)} download faild! An anachronism of the file is saved at ` + chalk.red(`${path.basename(filePath)}`));
+	mergingFailed = true; // let's see if this works
+      });
+      fileStream.on("finish", ()=>{
+	hardLog(chalk.bgCyan.yellow.bold(`Download Sucessful: `) + `file at ${path.basename(url)} downloaded sucessfully! Saved as ` + chalk.cyan(`${path.basename(filePath)}`));
+	startMerging = true; // let's see if this works
+      });
+    })
+}
+	  
+
+*/
