@@ -2,7 +2,7 @@
   "name": "slice-net",
   "version": "2.0.0",
   "description": "A crossplatform tool to transfer large files over slow and unstable networks by sharding them.",
-  "main": "app.min.js",
+  "main": "slice-net.min.js",
   "scripts": {
     "test": "node tests/mainTest.js",
     "start": "node ."
@@ -18,7 +18,8 @@
     "ray-net",
     "rayvoice",
     "sharding",
-    "file-transfer"
+    "file-transfer",
+    "ray-userland"
   ],
   "author": "Ray Voice, Anna Voice",
   "license": "MIT",
@@ -27,11 +28,14 @@
   },
   "homepage": "https://github.com/Ray6464/Slice#readme",
   "dependencies": {
-    "chalk": "^4.1.1",
     "node-fetch": "^2.6.1",
+    "ray-flags": "^0.0.7",
+    "ray-fs": "^1.5.0",
+    "ray-hash": "^0.1.1",
+    "ray-serve": "^2.2.1",
     "split-file": "^2.2.2"
   },
   "bin": {
-    "slice-net": "./app.min.js"
+    "slice-net": "./slice-net.min.js"
   }
 }

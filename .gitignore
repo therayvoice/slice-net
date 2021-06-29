@@ -1,3 +1,9 @@
+# Old Files
+old
+
+# Uglified
+slice-net.min.js
+
 # Logs
 logs
 *.log

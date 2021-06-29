@@ -31,4 +31,10 @@ Similarly, to avoid merging shards use "noMerge" as the third argument to stop s
 ```
 slice-net download 192.162.1.112 noMarge
 ```
+/*
+1. `-p portNumber` for ports.
+2. `-d` to download.
+3. `-u` for upload.
+4.  
+*/
 
