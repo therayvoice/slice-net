@@ -6,7 +6,7 @@ const splitFile = require('split-file');
 const serve = require('ray-serve');
 const fs = Object.assign({}, require('ray-fs'));
 const hash = Object.assign({}, require('ray-hash'));
-const { logIPV4, moveShardsToPublic, serveShards } = require('./built-in-methods.min.js'); 
+const { logIPV4, moveShardsToPublic, serveShards, initDownloadSession } = require('./built-in-methods.min.js'); 
 const fetch = require('node-fetch');
 
 
@@ -56,19 +56,18 @@ if (uploader) {
   const sendersURL = `http://${ipAddr}:${serve.port}`;
   fs.initDirs(sliceNetDir, downloadsDir);
 
-  fetch(sendersURL) // fetching the data about shards
+  fetch(sendersURL) // fetching the shard's info form sender's root
     .then(res => res.json())
     .then(json => {
       const infoFile = `${json.fileName}-info.json`;
-      const fileInfo = {fileName: json.fileName, downloadedShards: []}; //file info
+      const fileInfo = {downloadedShards: [], recievedFileData: json };
+      initDownloadSession(infoFile, fileInfo);
+    
 
-      fileInfo.recievedFileData = json;
       const downloadBar = setInterval(()=>{
         console.log("Download Completed", Math.floor((fileInfo.downloadedShards.length / json.shards.length)*100), "%");
       },5000);
 
-      if (!fs.exists(infoFile).value) fs.writeJSON(infoFile, fileInfo);
-      else if (fs.exists(infoFile).value) fileInfo = fs.readJSON(infoFile).value;
 
       json.shards.forEach(shardData => {
 	if (!fileInfo.downloadedShards.includes(shardData.shardName)) {
@@ -104,7 +103,7 @@ if (uploader) {
     });
   
 } else {
-  console.log("No Upload or Download command Given!");
+  console.log("No Upload (-u) or Download (-d) flag given!");
   process.exit();
 }
 

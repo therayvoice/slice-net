@@ -40,6 +40,18 @@ module.exports = {
     serveObj.static(shardsPublicDir);
     const shardsInfo = getShardsInfo(shards, shardsPublicDir);
     startServer(serveObj, shardsInfo, fileName);
+  },
+  initDownloadSession: function(sessionFile, sessionInfo) {
+    if (!fs.exists(sessionFile).value) {
+      console.log("Starting new download Session!");
+      fs.writeJSON(sessionFile, sessionInfo);
+    } else if (fs.exists(sessionFile).value) {
+      console.log("Resuming leftover download Session!");
+      fileInfo = fs.readJSON(sessionFile).value;
+      return fileInfo;
+    } else {
+      console.log("Something went wrong while finding the info file of our session!");
+    }
   }
 }
 
