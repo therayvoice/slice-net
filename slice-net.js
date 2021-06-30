@@ -6,8 +6,9 @@ const splitFile = require('split-file');
 const serve = require('ray-serve');
 const fs = Object.assign({}, require('ray-fs'));
 const hash = Object.assign({}, require('ray-hash'));
-
+const { logIPV4, moveShardsToPublic, serveShards } = require('./built-in-methods.min.js'); 
 const fetch = require('node-fetch');
+
 
 // Parsing and Utilizing Arguments Vector
 serve.port = +flags.p || 4321;
@@ -24,65 +25,38 @@ const showIPV4 = flags.I;
 
 // Constants
 const sliceNetDir = path.join(filesDir, "slice-net-files");
-const downloadsDir = path.join(sliceNetDir, "recieved-files");
-const uploadsDir = path.join(sliceNetDir, "sent-files");
-
-// Methods (goes in mentioned modules later)
-function logIPV4() {
-  serve.getIPV4((err, add, fam)=> { console.log(`The sender IPV4 is ${add}`) });
-}
-
-
-function startServer(shardsInfoArr, sentFileName) { 
-  serve
-    .serveJSON("/", {serverName: "slice-net",
-	             fileName: sentFileName,
-	             shards: shardsInfoArr})
-    .listen();
-}
-
-function moveShardsToPublic(shards, frontFacingDir) { // Public here means any front-facing aka statically served directory
-  for (const shard of shards) {
-    const newFileURI = path.join(frontFacingDir, shard);
-    fs.mv(shard, newFileURI);
-  }
-}
-
-function getShardsInfo(shards, frontFacingDir) {
-  const allShardsInfo = [];
-  for (const shard of shards) {
-    const fileHash = hash.getHashOfFile(shard).value;
-    allShardsInfo.push({shardName: shard, shardHash: fileHash});
-  }
-  return allShardsInfo;
-}
-
-
 
 // Main Method
 if (uploader) {
   console.log("Starting Server for sending:", file);
-  logIPV4();
+  const uploadsDir = path.join(sliceNetDir, "sent-files");
+  const shardsDir = path.join(uploadsDir, `${file} shards`);
+  logIPV4(serve);
   fs.initDirs(sliceNetDir, uploadsDir);
   //here: add code here to check if files are already sharded, don't shard them
-
-  splitFile
-    .splitFileBySize(file, shardSize)
-    .then(names => {
-      // Must be done in this order
-      const shardsInfo = getShardsInfo(names, uploadsDir);
-      moveShardsToPublic(names, uploadsDir);
-      serve.static(uploadsDir);
-      //const shardsInfo = getShardsInfo(names, uploadsDir);
-      startServer(shardsInfo, file);
-    });
+  if (!fs.exists(shardsDir).value) {
+    console.log(`Sharding file: ${file}`);
+    splitFile
+      .splitFileBySize(file, shardSize)
+      .then(names => {
+        fs.initDir(shardsDir);
+        moveShardsToPublic(names, shardsDir);
+	serveShards(serve, shardsDir, names, file);
+      });
+  } else {
+    console.log(`Shards of ${file} already exist on the system!`);
+    const shardNames = fs.cd(shardsDir).lsFile().value;
+    serveShards(serve, shardsDir, shardNames, file);
+  }
 
 } else if (downloader) {
   console.log("Starting Client for recieveing:");
-  const baseURL = `http://${ipAddr}:${serve.port}`;
+
+  const downloadsDir = path.join(sliceNetDir, "recieved-files");
+  const sendersURL = `http://${ipAddr}:${serve.port}`;
   fs.initDirs(sliceNetDir, downloadsDir);
 
-  fetch(baseURL) // fetching the data about shards
+  fetch(sendersURL) // fetching the data about shards
     .then(res => res.json())
     .then(json => {
       const infoFile = `${json.fileName}-info.json`;
@@ -98,7 +72,7 @@ if (uploader) {
 
       json.shards.forEach(shardData => {
 	if (!fileInfo.downloadedShards.includes(shardData.shardName)) {
-       	    fetch(`${baseURL}/${shardData.shardName}`) // fetching the shards
+       	    fetch(`${sendersURL}/${shardData.shardName}`) // fetching the shards
               .then(res => {
                 fs.stream(res.body, shardData.shardName, () => {},
                   () => { // file download sucess callback
@@ -134,24 +108,3 @@ if (uploader) {
   process.exit();
 }
 
-/*
-// DownloadSync Function
-async function downloadSync(url, filePath){
-  hardLog(chalk.bgYellow.blue.bold(`Download Starting: `) + `Downloading from ${path.basename(url)} at ` + chalk.blue(`${path.basename(filePath)}`));
-    return await fetch(url)
-    .then(res => {
-      const fileStream = fs.createWriteStream(filePath);
-      res.body.pipe(fileStream);
-      res.body.on("error", ()=>{
-        hardLog(chalk.bgRed.yellow.bold(`Download Faild: `) + `file at ${path.basename(url)} download faild! An anachronism of the file is saved at ` + chalk.red(`${path.basename(filePath)}`));
-	mergingFailed = true; // let's see if this works
-      });
-      fileStream.on("finish", ()=>{
-	hardLog(chalk.bgCyan.yellow.bold(`Download Sucessful: `) + `file at ${path.basename(url)} downloaded sucessfully! Saved as ` + chalk.cyan(`${path.basename(filePath)}`));
-	startMerging = true; // let's see if this works
-      });
-    })
-}
-	  
-
-*/

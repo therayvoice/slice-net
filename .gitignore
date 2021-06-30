@@ -6,6 +6,7 @@ old/
 
 # Uglified
 slice-net.min.js
+built-in-methods.min.js
 
 # Logs
 logs

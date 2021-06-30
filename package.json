@@ -4,6 +4,7 @@
   "description": "A crossplatform tool to transfer large files over slow and unstable networks by sharding them.",
   "main": "slice-net.min.js",
   "scripts": {
+    "prepublish": "uglifyjs --compress --mangle -o slice-net.min.js -- slice-net.js",
     "test": "node tests/mainTest.js",
     "start": "node ."
   },
