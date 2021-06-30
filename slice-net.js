@@ -13,6 +13,7 @@ const fetch = require('node-fetch');
 serve.port = +flags.p || 4321;
 const downloader = flags.d || false;
 const uploader = flags.u || false;
+//const bouncer = flags.b || false; // Bouncing signals
 const file = flags.f;
 const ipAddr = flags.ip;
 const shardSize = flags.s || 1000000;
@@ -74,7 +75,7 @@ if (uploader) {
 
       fileInfo.recievedFileData = json;
       const downloadBar = setInterval(()=>{
-        console.log("Download Completed", Math.floor(fileInfo.downloadedShards.length * 100/ json.shards.length * 100), "%");
+        console.log("Download Completed", Math.floor((fileInfo.downloadedShards.length / json.shards.length)*100), "%");
       },5000);
 
       if (!fs.exists(infoFile).value) fs.writeJSON(infoFile, fileInfo);
