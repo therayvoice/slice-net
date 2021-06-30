@@ -15,11 +15,12 @@ const downloader = flags.d || false;
 const uploader = flags.u || false;
 //const bouncer = flags.b || false; // Bouncing signals
 const file = flags.f;
-const ipAddr = flags.ip;
+const ipAddr = flags.ip || "localhost";
 const shardSize = flags.s || 1000000;
 const noMerge = flags.M || false;
 const noShards = flags.S || false;
 const filesDir = flags.D || ""; 
+const showIPV4 = flags.I; 
 
 // Constants
 const sliceNetDir = path.join(filesDir, "slice-net-files");
@@ -27,10 +28,12 @@ const downloadsDir = path.join(sliceNetDir, "recieved-files");
 const uploadsDir = path.join(sliceNetDir, "sent-files");
 
 // Methods (goes in mentioned modules later)
-function initDir(dir) { // goes in ray-fs
-  if (!fs.exists(dir).value) fs.mkdir(dir);
+function logIPV4() {
+  serve.getIPV4((err, add, fam)=> { console.log(`The sender IPV4 is ${add}`) });
 }
-function startServer(shardsInfoArr, sentFileName) {
+
+
+function startServer(shardsInfoArr, sentFileName) { 
   serve
     .serveJSON("/", {serverName: "slice-net",
 	             fileName: sentFileName,
@@ -38,34 +41,46 @@ function startServer(shardsInfoArr, sentFileName) {
     .listen();
 }
 
+function moveShardsToPublic(shards, frontFacingDir) { // Public here means any front-facing aka statically served directory
+  for (const shard of shards) {
+    const newFileURI = path.join(frontFacingDir, shard);
+    fs.mv(shard, newFileURI);
+  }
+}
+
+function getShardsInfo(shards, frontFacingDir) {
+  const allShardsInfo = [];
+  for (const shard of shards) {
+    const fileHash = hash.getHashOfFile(shard).value;
+    allShardsInfo.push({shardName: shard, shardHash: fileHash});
+  }
+  return allShardsInfo;
+}
+
+
+
 // Main Method
 if (uploader) {
   console.log("Starting Server for sending:", file);
-  initDir(sliceNetDir);
-  initDir(uploadsDir);
-  //here: add code here to check if files are already sharded, don't shard them then
+  logIPV4();
+  fs.initDirs(sliceNetDir, uploadsDir);
+  //here: add code here to check if files are already sharded, don't shard them
 
   splitFile
     .splitFileBySize(file, shardSize)
     .then(names => {
-      const shardInfo = [];
-      names.forEach(name => {
-	const fileHash = hash.getHashOfFile(name).value;
-        const newFileURI = path.join(uploadsDir, name);
-        fs.mv(name, newFileURI);
-        shardInfo.push({shardName: name, shardHash: fileHash});
-	serve.static(uploadsDir);
-      });
-      startServer(shardInfo, file);
+      // Must be done in this order
+      const shardsInfo = getShardsInfo(names, uploadsDir);
+      moveShardsToPublic(names, uploadsDir);
+      serve.static(uploadsDir);
+      //const shardsInfo = getShardsInfo(names, uploadsDir);
+      startServer(shardsInfo, file);
     });
 
 } else if (downloader) {
   console.log("Starting Client for recieveing:");
-
-  initDir(sliceNetDir);
-  initDir(downloadsDir);
-  
   const baseURL = `http://${ipAddr}:${serve.port}`;
+  fs.initDirs(sliceNetDir, downloadsDir);
 
   fetch(baseURL) // fetching the data about shards
     .then(res => res.json())
