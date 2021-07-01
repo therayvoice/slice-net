@@ -1,6 +1,7 @@
 const hash = require('ray-hash');
 const fs = require('ray-fs');
 const path = require('path');
+const splitFile = require('split-file');
 // Methods (goes in mentioned modules later)
 
 function ffShard(frontFacingDir, item) { // For Front-Facing shard URI
@@ -25,17 +26,17 @@ function startServer(rayServeObj, shardsInfoArr, sentFileName) {
     .listen();
 }
 
+function moveShardsToPublic(shards, frontFacingDir) { // Public here means any front-facing aka statically served directory
+  for (const shard of shards) {
+    const newFileURI = ffShard(frontFacingDir, shard);
+    fs.mv(shard, newFileURI);
+  }
+}
 
 module.exports = {
   logIPV4: function (rayServeObj) {
     rayServeObj.getIPV4((err, add, fam)=> { console.log(`The sender IPV4 is ${add}`) });
   }, 
-  moveShardsToPublic: function(shards, frontFacingDir) { // Public here means any front-facing aka statically served directory
-    for (const shard of shards) {
-      const newFileURI = ffShard(frontFacingDir, shard);
-      fs.mv(shard, newFileURI);
-    }
-  },
   serveShards: function(serveObj, shardsPublicDir, shards, fileName) {
     serveObj.static(shardsPublicDir);
     const shardsInfo = getShardsInfo(shards, shardsPublicDir);
@@ -52,6 +53,14 @@ module.exports = {
     } else {
       console.log("Something went wrong while finding the info file of our session!");
     }
+  },
+  pulverizeFile: async function (fileName, shardSizeRequired, shardsKeepingDir, callback) {
+    let response = await splitFile.splitFileBySize(fileName, shardSizeRequired);
+    let names = await response;
+    callback();
+    fs.initDir(shardsKeepingDir);
+    moveShardsToPublic(names, shardsKeepingDir);
+    return names;
   }
 }
 

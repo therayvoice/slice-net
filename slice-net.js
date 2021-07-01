@@ -6,7 +6,7 @@ const splitFile = require('split-file');
 const serve = require('ray-serve');
 const fs = Object.assign({}, require('ray-fs'));
 const hash = Object.assign({}, require('ray-hash'));
-const { logIPV4, moveShardsToPublic, serveShards, initDownloadSession } = require('./built-in-methods.min.js'); 
+const { logIPV4, serveShards, initDownloadSession, pulverizeFile } = require('./built-in-methods.min.js'); 
 const fetch = require('node-fetch');
 
 
@@ -25,23 +25,20 @@ const showIPV4 = flags.I;
 
 // Constants
 const sliceNetDir = path.join(filesDir, "slice-net-files");
+const uploadsDir = path.join(sliceNetDir, "sent-files");
+const shardsDir = path.join(uploadsDir, `${file} shards`);
 
 // Main Method
 if (uploader) {
   console.log("Starting Server for sending:", file);
-  const uploadsDir = path.join(sliceNetDir, "sent-files");
-  const shardsDir = path.join(uploadsDir, `${file} shards`);
   logIPV4(serve);
   fs.initDirs(sliceNetDir, uploadsDir);
   //here: add code here to check if files are already sharded, don't shard them
   if (!fs.exists(shardsDir).value) {
     console.log(`Sharding file: ${file}`);
-    splitFile
-      .splitFileBySize(file, shardSize)
-      .then(names => {
-        fs.initDir(shardsDir);
-        moveShardsToPublic(names, shardsDir);
-	serveShards(serve, shardsDir, names, file);
+    pulverizeFile(file, shardSize, shardsDir, ()=>{ console.log("Sharding Sucessful!") })
+      .then(shardNames => {
+        serveShards(serve, shardsDir, shardNames, file);
       });
   } else {
     console.log(`Shards of ${file} already exist on the system!`);
@@ -63,47 +60,45 @@ if (uploader) {
       const fileInfo = {downloadedShards: [], recievedFileData: json };
       initDownloadSession(infoFile, fileInfo);
     
-
       const downloadBar = setInterval(()=>{
         console.log("Download Completed", Math.floor((fileInfo.downloadedShards.length / json.shards.length)*100), "%");
       },5000);
 
-
-      json.shards.forEach(shardData => {
+      for (let shardData of json.shards) {
 	if (!fileInfo.downloadedShards.includes(shardData.shardName)) {
-       	    fetch(`${sendersURL}/${shardData.shardName}`) // fetching the shards
-              .then(res => {
-                fs.stream(res.body, shardData.shardName, () => {},
-                  () => { // file download sucess callback
-                    fileInfo.downloadedShards.push(shardData.shardName);
-	            fs.writeJSON(infoFile, fileInfo); // updating fileInfo
-	            const shards = json.shards.map(shard => shard.shardName);
-                    const shardHashes = json.shards.map(shard => shard.shardHash);
+          
+	  fetchShards(`${sendersURL}/${shardData.shardName}`, function(res) {
+	    fs.stream(res.body, shardData.shardName, () => {}, () => { // file download sucess callback // here: make this callback moduler
+              fileInfo.downloadedShards.push(shardData.shardName);
+	      fs.writeJSON(infoFile, fileInfo); // updating fileInfo
+	      const shards = json.shards.map(shard => shard.shardName);
+              const shardHashes = json.shards.map(shard => shard.shardHash);
                   
-                    console.log("Files downloaded", fileInfo.downloadedShards.length, "out of", json.shards.length);
-                    if (fileInfo.downloadedShards.length == json.shards.length) {
-                      splitFile.mergeFiles(shards, json.fileName)
-                        .then(() => {
-	                  console.log("Files Merged!");
-			  clearInterval(downloadBar);
-		          shards.forEach(shard => {
-		            //fs.mv(shard, downloadDir);
-			    if (noShards) fs.rm(shard);
-		          });
-	                })
-	              .catch((err)=>{
-	                console.log("Unsucessful Merge Error:", err);
-	              });
-		    }
-	        });
-	      });
+              console.log("Files downloaded", fileInfo.downloadedShards.length, "out of", json.shards.length);
+              if (fileInfo.downloadedShards.length == json.shards.length) {
+                splitFile.mergeFiles(shards, json.fileName)
+                  .then(() => {
+	             console.log("Files Merged!");
+	             clearInterval(downloadBar);
+	          })
+	          .catch((err)=>{
+	            console.log("Unsucessful Merge Error:", err);
+	          });
+	      }
+	    });
+	  });
           console.log(shardData.shardName);
 	}
-      });
+      }
     });
   
 } else {
   console.log("No Upload (-u) or Download (-d) flag given!");
   process.exit();
+}
+
+async function fetchShards(shardsURL, streamCallback) { // put this in the built-in methods script
+  const response = await fetch(shardsURL);
+  streamCallback(response);
 }
 
