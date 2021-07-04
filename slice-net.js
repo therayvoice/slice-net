@@ -6,8 +6,8 @@ const serve = require('ray-serve');
 const fs = Object.assign({}, require('ray-fs'));
 const hash = Object.assign({}, require('ray-hash'));
 const { logIPV4, serveShards, initDownloadSession,
-	pulverizeFile, mergeWhenReadyThenExit,
-	getSucessfullyDownloadedShards, logDownloadProgress } = require('./built-in-methods.min.js'); 
+	pulverizeFile, mergeWhenReadyThenExit, removeShards,
+	getSucessfullyDownloadedShards, logDownloadProgress } = require('./built-in-methods.js'); 
 const fetch = require('node-fetch');
 
 // Parsing and Utilizing Arguments Vector
@@ -21,6 +21,13 @@ const shardSize = flags.s || 1000000;
 const noMerge = flags.M || false; // avoide merging of shards (under development)
 const noShards = flags.S || false; // delete shards after downloading is complete or sending is cancled (under development)
 const filesDir = flags.D || ""; // change directory where shards are stored
+
+/* // To be used later
+for (let eventType of ['exit', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'uncaughtException', 'SIGTERM']) {
+  process.on(eventType, ()=>{
+    if (noShards) removeShards();
+  }
+}*/
 
 // Constants
 const sliceNetDir = path.join(filesDir, "slice-net-files");

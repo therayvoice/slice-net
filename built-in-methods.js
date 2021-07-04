@@ -82,6 +82,11 @@ module.exports = {
   },
   logDownloadProgress: function(filesDownloaded, totalFiles) {
     console.log("Download in Progress", Math.floor((filesDownloaded / totalFiles)*100), "%")
-  }
+  }/*,
+  removeShards: function(shardURIs) {
+    shardURIs.forEach((URI)=>{
+      fs.rm(URI);
+    });
+  }*/
 }
 

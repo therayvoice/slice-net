@@ -24,7 +24,7 @@ slice-net -d -ip 192.162.1.112
 
 If a download is discontinued it starts from the last shard it was downloading.
 
-There will be a "sliceFiles" directory which will have all the individual shards, to delete all of these shards upon sucessful download pass "-S" flag.
+There will be a "sliceFiles" directory which will have all the individual shards, to delete all of these shards upon sucessful download pass "-S" flag. (Under development)
 ```
 slice-net download 192.162.1.112 -S
 ```
@@ -34,7 +34,7 @@ Similarly, to avoid merging shards use "-M".
 slice-net -d -ip 192.162.1.112 -M
 ```
 
-To change the used directroy use the -D flag, for example:-
+To change the used directroy use the -D flag, for example:- (Unstable)
 ```
 slice-net -d -ip 192.162.1.112 -D ./newDownloads
 ```
