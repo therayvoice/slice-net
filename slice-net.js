@@ -53,9 +53,9 @@ if (uploader) {
   const sendersURL = `http://${ipAddr}:${serve.port}`;
   fs.initDirs(sliceNetDir, downloadsDir);
 
-  fetch(sendersURL) // fetching the shard's info form sender's root
-    .then(res => res.json())
-    .then(json => {
+  (async function() {
+  let response = await fetch(sendersURL);
+  let json = await response.json();
       const infoFile = `${json.fileName}-info.json`;
       const fileInfo = {downloadedShards: [], recievedFileData: json };
       initDownloadSession(infoFile, fileInfo);
@@ -90,8 +90,8 @@ if (uploader) {
           console.log(shardData.shardName);
 	}
       }
-    });
-  
+    })();
+
 } else {
   console.log("No Upload (-u) or Download (-d) flag given!");
   process.exit();
