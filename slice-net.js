@@ -36,10 +36,10 @@ if (uploader) {
   //here: add code here to check if files are already sharded, don't shard them
   if (!fs.exists(shardsDir).value) {
     console.log(`Sharding file: ${file}`);
-    pulverizeFile(file, shardSize, shardsDir, ()=>{ console.log("Sharding Sucessful!") })
-      .then(shardNames => {
-        serveShards(serve, shardsDir, shardNames, file);
-      });
+    (async function() {
+      let shardNames = await pulverizeFile(file, shardSize, shardsDir, ()=>{ console.log("Sharding Sucessful!") })
+      serveShards(serve, shardsDir, shardNames, file);
+    })();
   } else {
     console.log(`Shards of ${file} already exist on the system!`);
     const shardNames = fs.cd(shardsDir).lsFile().value;
