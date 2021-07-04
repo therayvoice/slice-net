@@ -67,25 +67,24 @@ if (uploader) {
       for (let shardData of json.shards) {
 	if (!fileInfo.downloadedShards.includes(shardData.shardName)) {
           
-	  fetchShards(`${sendersURL}/${shardData.shardName}`, function(res) {
-	    fs.stream(res.body, shardData.shardName, () => {}, () => { // file download sucess callback // here: make this callback moduler
-              fileInfo.downloadedShards.push(shardData.shardName);
-	      fs.writeJSON(infoFile, fileInfo); // updating fileInfo
-	      const shards = json.shards.map(shard => shard.shardName);
-              const shardHashes = json.shards.map(shard => shard.shardHash);
-                  
-              console.log("Files downloaded", fileInfo.downloadedShards.length, "out of", json.shards.length);
-              if (fileInfo.downloadedShards.length == json.shards.length) {
-                splitFile.mergeFiles(shards, json.fileName)
-                  .then(() => {
-	             console.log("Files Merged!");
-	             clearInterval(downloadBar);
-	          })
-	          .catch((err)=>{
-	            console.log("Unsucessful Merge Error:", err);
-	          });
-	      }
-	    });
+	  let res = await fetch(`${sendersURL}/${shardData.shardName}`);
+	  fs.stream(res.body, shardData.shardName, () => {}, () => { // file download sucess callback // here: make this callback moduler
+            fileInfo.downloadedShards.push(shardData.shardName);
+	    fs.writeJSON(infoFile, fileInfo); // updating fileInfo
+	    const shards = json.shards.map(shard => shard.shardName);
+            const shardHashes = json.shards.map(shard => shard.shardHash);
+                
+            console.log("Files downloaded", fileInfo.downloadedShards.length, "out of", json.shards.length);
+            if (fileInfo.downloadedShards.length == json.shards.length) {
+              splitFile.mergeFiles(shards, json.fileName)
+                .then(() => {
+	           console.log("Files Merged!");
+	           clearInterval(downloadBar);
+	        })
+	        .catch((err)=>{
+	          console.log("Unsucessful Merge Error:", err);
+	        });
+	    }
 	  });
           console.log(shardData.shardName);
 	}
@@ -95,10 +94,5 @@ if (uploader) {
 } else {
   console.log("No Upload (-u) or Download (-d) flag given!");
   process.exit();
-}
-
-async function fetchShards(shardsURL, streamCallback) { // put this in the built-in methods script
-  const response = await fetch(shardsURL);
-  streamCallback(response);
 }
 
