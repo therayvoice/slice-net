@@ -33,6 +33,18 @@ function moveShardsToPublic(shards, frontFacingDir) { // Public here means any f
   }
 }
 
+function mergeFilesAndExit(shardsArg, fileName) {
+  splitFile.mergeFiles(shardsArg, fileName)
+    .then(() => {
+       console.log("Files Merged!");
+       process.exit();
+    })
+    .catch((err)=>{
+      console.log("Unsucessful Merge Error:", err);
+    });
+}
+
+
 module.exports = {
   logIPV4: function (rayServeObj) {
     rayServeObj.getIPV4((err, add, fam)=> { console.log(`The sender IPV4 is ${add}`) });
@@ -61,6 +73,15 @@ module.exports = {
     fs.initDir(shardsKeepingDir);
     moveShardsToPublic(names, shardsKeepingDir);
     return names;
+  },
+  mergeWhenReadyThenExit: function(namesOfAllShards, fileName) {
+    mergeFilesAndExit(namesOfAllShards, fileName);
+  },
+  getSucessfullyDownloadedShards: function(shardNamePrefixArg) {
+    return fs.lsFile().value.filter(item => item.includes(shardNamePrefixArg) && !/.tmp$/.test(item)); // checking downloaded shards by name
+  },
+  logDownloadProgress: function(filesDownloaded, totalFiles) {
+    console.log("Download in Progress", Math.floor((filesDownloaded / totalFiles)*100), "%")
   }
 }
 

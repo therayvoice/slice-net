@@ -2,13 +2,13 @@
 
 const flags = require('ray-flags');
 const path = require('path');
-const splitFile = require('split-file');
 const serve = require('ray-serve');
 const fs = Object.assign({}, require('ray-fs'));
 const hash = Object.assign({}, require('ray-hash'));
-const { logIPV4, serveShards, initDownloadSession, pulverizeFile } = require('./built-in-methods.min.js'); 
+const { logIPV4, serveShards, initDownloadSession,
+	pulverizeFile, mergeWhenReadyThenExit,
+	getSucessfullyDownloadedShards, logDownloadProgress } = require('./built-in-methods.min.js'); 
 const fetch = require('node-fetch');
-
 
 // Parsing and Utilizing Arguments Vector
 serve.port = +flags.p || 4321;
@@ -49,35 +49,31 @@ if (uploader) {
 } else if (downloader) {
   console.log("Starting Client for recieveing:");
 
-  const downloadsDir = path.join(sliceNetDir, "recieved-files");
+  const downloadsDir = path.join(sliceNetDir, "recieved-files"); // use later to keep shards one they are all downloaded
   const sendersURL = `http://${ipAddr}:${serve.port}`;
-  fs.initDirs(sliceNetDir, downloadsDir);
+  fs.initDirs(sliceNetDir, downloadsDir); // use later to keep shards when all are downloaded
 
   (async function() {
     let response = await fetch(sendersURL);
     let json = await response.json();
-    const infoFile = `${json.fileName}-info.json`;
-    const fileInfo = {downloadedShards: [], recievedFileData: json };
-    initDownloadSession(infoFile, fileInfo);
+    if (fs.exists(json.fileName).value) {console.error(`A file named ${json.fileName} already exists!`); process.exit();}
+    const shardNamePrefix = `${json.fileName}.sf-part`;
+    const totalShardsCount = json.shards.length;
     
+    let sucessfullyDownloadedShards = getSucessfullyDownloadedShards(shardNamePrefix); 
+
     const downloadBar = setInterval(()=>{
-      console.log("Download in Progress", Math.floor((fileInfo.downloadedShards.length / json.shards.length)*100), "%");
-    },5000);
+      sucessfullyDownloadedShards = getSucessfullyDownloadedShards(shardNamePrefix); 
+      logDownloadProgress(sucessfullyDownloadedShards.length, totalShardsCount);
+      if (sucessfullyDownloadedShards.length === totalShardsCount) mergeWhenReadyThenExit(sucessfullyDownloadedShards, json.fileName);
+    },1000);
 
     for (let shardData of json.shards) {
-      if (!fileInfo.downloadedShards.includes(shardData.shardName)) {
-        
+      sucessfullyDownloadedShards = getSucessfullyDownloadedShards(shardNamePrefix); 
+      if (!sucessfullyDownloadedShards.includes(shardData.shardName)) {
+	console.log("downloading file", shardData.shardName);
         let res = await fetch(`${sendersURL}/${shardData.shardName}`);
-        fs.stream(res.body, shardData.shardName, () => {}, () => { // file download sucess callback // here: make this callback moduler
-          fileInfo.downloadedShards.push(shardData.shardName);
-          fs.writeJSON(infoFile, fileInfo); // updating fileInfo
-          const shards = json.shards.map(shard => shard.shardName);
-          const shardHashes = json.shards.map(shard => shard.shardHash);
-              
-          console.log("Files downloaded", fileInfo.downloadedShards.length, "out of", json.shards.length);
-          if (fileInfo.downloadedShards.length == json.shards.length) mergeFilesAndExit(shards, json.fileName);
-        });
-        console.log(shardData.shardName);
+        fs.stream(res.body, shardData.shardName);
       }
     }
   })();
@@ -85,16 +81,5 @@ if (uploader) {
 } else {
   console.log("No Upload (-u) or Download (-d) flag given!");
   process.exit();
-}
-
-function mergeFilesAndExit(shardsArg, fileName) {
-  splitFile.mergeFiles(shardsArg, fileName)
-    .then(() => {
-       console.log("Files Merged!");
-       process.exit();
-    })
-    .catch((err)=>{
-      console.log("Unsucessful Merge Error:", err);
-    });
 }
 
