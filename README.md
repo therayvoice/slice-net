@@ -1,6 +1,8 @@
 # Slice
 A cross-platform CLI tool for transfering large files from one pc to another over slow and unstable networks by breaking the files down into very small parts.
 
+(Some functions are still under Development!)
+
 #Installation
 To install using NPM
 ```

@@ -33,7 +33,7 @@ function moveShardsToPublic(shards, frontFacingDir) { // Public here means any f
   }
 }
 
-function mergeFilesAndExit(shardsArg, fileName) {
+function mergeFilesAndExit(shardsArg, fileName, shardDir) {
   splitFile.mergeFiles(shardsArg, fileName)
     .then(() => {
        console.log("Files Merged!");

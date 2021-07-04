@@ -18,10 +18,9 @@ const uploader = flags.u || false;
 const file = flags.f;
 const ipAddr = flags.ip || "localhost";
 const shardSize = flags.s || 1000000;
-const noMerge = flags.M || false;
-const noShards = flags.S || false;
-const filesDir = flags.D || ""; 
-const showIPV4 = flags.I; 
+const noMerge = flags.M || false; // avoide merging of shards (under development)
+const noShards = flags.S || false; // delete shards after downloading is complete or sending is cancled (under development)
+const filesDir = flags.D || ""; // change directory where shards are stored
 
 // Constants
 const sliceNetDir = path.join(filesDir, "slice-net-files");
@@ -65,7 +64,10 @@ if (uploader) {
     const downloadBar = setInterval(()=>{
       sucessfullyDownloadedShards = getSucessfullyDownloadedShards(shardNamePrefix); 
       logDownloadProgress(sucessfullyDownloadedShards.length, totalShardsCount);
-      if (sucessfullyDownloadedShards.length === totalShardsCount) mergeWhenReadyThenExit(sucessfullyDownloadedShards, json.fileName);
+      if (sucessfullyDownloadedShards.length === totalShardsCount) {
+        if (!noMerge) mergeWhenReadyThenExit(sucessfullyDownloadedShards, json.fileName);
+	else if (noMerge) process.exit();
+      }
     },1000);
 
     for (let shardData of json.shards) {
