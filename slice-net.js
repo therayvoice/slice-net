@@ -54,45 +54,47 @@ if (uploader) {
   fs.initDirs(sliceNetDir, downloadsDir);
 
   (async function() {
-  let response = await fetch(sendersURL);
-  let json = await response.json();
-      const infoFile = `${json.fileName}-info.json`;
-      const fileInfo = {downloadedShards: [], recievedFileData: json };
-      initDownloadSession(infoFile, fileInfo);
+    let response = await fetch(sendersURL);
+    let json = await response.json();
+    const infoFile = `${json.fileName}-info.json`;
+    const fileInfo = {downloadedShards: [], recievedFileData: json };
+    initDownloadSession(infoFile, fileInfo);
     
-      const downloadBar = setInterval(()=>{
-        console.log("Download Completed", Math.floor((fileInfo.downloadedShards.length / json.shards.length)*100), "%");
-      },5000);
+    const downloadBar = setInterval(()=>{
+      console.log("Download in Progress", Math.floor((fileInfo.downloadedShards.length / json.shards.length)*100), "%");
+    },5000);
 
-      for (let shardData of json.shards) {
-	if (!fileInfo.downloadedShards.includes(shardData.shardName)) {
-          
-	  let res = await fetch(`${sendersURL}/${shardData.shardName}`);
-	  fs.stream(res.body, shardData.shardName, () => {}, () => { // file download sucess callback // here: make this callback moduler
-            fileInfo.downloadedShards.push(shardData.shardName);
-	    fs.writeJSON(infoFile, fileInfo); // updating fileInfo
-	    const shards = json.shards.map(shard => shard.shardName);
-            const shardHashes = json.shards.map(shard => shard.shardHash);
-                
-            console.log("Files downloaded", fileInfo.downloadedShards.length, "out of", json.shards.length);
-            if (fileInfo.downloadedShards.length == json.shards.length) {
-              splitFile.mergeFiles(shards, json.fileName)
-                .then(() => {
-	           console.log("Files Merged!");
-	           clearInterval(downloadBar);
-	        })
-	        .catch((err)=>{
-	          console.log("Unsucessful Merge Error:", err);
-	        });
-	    }
-	  });
-          console.log(shardData.shardName);
-	}
+    for (let shardData of json.shards) {
+      if (!fileInfo.downloadedShards.includes(shardData.shardName)) {
+        
+        let res = await fetch(`${sendersURL}/${shardData.shardName}`);
+        fs.stream(res.body, shardData.shardName, () => {}, () => { // file download sucess callback // here: make this callback moduler
+          fileInfo.downloadedShards.push(shardData.shardName);
+          fs.writeJSON(infoFile, fileInfo); // updating fileInfo
+          const shards = json.shards.map(shard => shard.shardName);
+          const shardHashes = json.shards.map(shard => shard.shardHash);
+              
+          console.log("Files downloaded", fileInfo.downloadedShards.length, "out of", json.shards.length);
+          if (fileInfo.downloadedShards.length == json.shards.length) mergeFilesAndExit(shards, json.fileName);
+        });
+        console.log(shardData.shardName);
       }
-    })();
+    }
+  })();
 
 } else {
   console.log("No Upload (-u) or Download (-d) flag given!");
   process.exit();
+}
+
+function mergeFilesAndExit(shardsArg, fileName) {
+  splitFile.mergeFiles(shardsArg, fileName)
+    .then(() => {
+       console.log("Files Merged!");
+       process.exit();
+    })
+    .catch((err)=>{
+      console.log("Unsucessful Merge Error:", err);
+    });
 }
 
