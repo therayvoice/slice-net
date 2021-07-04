@@ -1,6 +1,6 @@
 {
   "name": "slice-net",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "A crossplatform tool to transfer large files over slow and unstable networks by sharding them.",
   "main": "slice-net.min.js",
   "scripts": {
