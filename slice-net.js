@@ -21,6 +21,12 @@ const shardSize = flags.s || 1000000;
 const noMerge = flags.M || false; // avoide merging of shards (under development)
 const noShards = flags.S || false; // delete shards after downloading is complete or sending is cancled (under development)
 const filesDir = flags.D || ""; // change directory where shards are stored
+const version = "v4.0.3";
+
+if (flags.v) {
+  console.log(`Using Slice-Net version ${version}`);
+  process.exit();
+}
 
 // Handeling Unhaldeled Promise Rejection
 process.on('unhandledRejection', err => {
@@ -66,6 +72,8 @@ if (uploader) {
 
   (async function() {
     let response = await fetch(sendersURL);
+    if (!response.ok) throw new Error(`An error has occured: ${response.status}`); // Attempt to catch Error
+
     let json = await response.json();
     if (fs.exists(json.fileName).value) {console.error(`A file named ${json.fileName} already exists!`); process.exit();}
     const shardNamePrefix = `${json.fileName}.sf-part`;
@@ -87,6 +95,8 @@ if (uploader) {
       if (!sucessfullyDownloadedShards.includes(shardData.shardName)) {
 	console.log("downloading file", shardData.shardName);
         let res = await fetch(`${sendersURL}/${shardData.shardName}`);
+        if (!res.ok) throw new Error(`An error has occured: ${res.status}`); // Attempt to catch Error
+
         fs.stream(res.body, shardData.shardName);
       }
     }
