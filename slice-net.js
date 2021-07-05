@@ -22,6 +22,11 @@ const noMerge = flags.M || false; // avoide merging of shards (under development
 const noShards = flags.S || false; // delete shards after downloading is complete or sending is cancled (under development)
 const filesDir = flags.D || ""; // change directory where shards are stored
 
+// Handeling Unhaldeled Promise Rejection
+process.on('unhandledRejection', err => {
+  console.log('unhandledRejection', err.message);
+});
+
 /* // To be used later
 for (let eventType of ['exit', 'SIGINT', 'SIGUSR1', 'SIGUSR2', 'uncaughtException', 'SIGTERM']) {
   process.on(eventType, ()=>{
