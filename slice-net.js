@@ -7,7 +7,7 @@ const fs = Object.assign({}, require('ray-fs'));
 const hash = Object.assign({}, require('ray-hash'));
 const { logIPV4, serveShards, initDownloadSession,
 	pulverizeFile, mergeWhenReadyThenExit, removeShards,
-	getSucessfullyDownloadedShards, logDownloadProgress } = require('./built-in-methods.js'); 
+	getSucessfullyDownloadedShards, logDownloadProgress } = require('./built-in-methods.min.js'); 
 const fetch = require('node-fetch');
 
 // Parsing and Utilizing Arguments Vector

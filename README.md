@@ -22,7 +22,13 @@ On the PC to which your are sending:
 slice-net -d -ip 192.162.1.112
 ```
 
-If a download is discontinued it starts from the last shard it was downloading.
+If a download is discontinued it starts from the last shard it was downloading. Any missing shards are also downloaded!
+
+To create smaller or larger shards use the `-s` flag:
+```
+slice-net -u -f fileName.xyz -s 2000000
+```
+This will divide the file into 2MB shards. Default is 1MB.
 
 There will be a "sliceFiles" directory which will have all the individual shards, to delete all of these shards upon sucessful download pass "-S" flag. (Under development)
 ```
